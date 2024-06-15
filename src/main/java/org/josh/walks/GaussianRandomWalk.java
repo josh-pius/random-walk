@@ -21,10 +21,10 @@ import java.util.stream.IntStream;
 import static java.lang.Thread.sleep;
 
 public class GaussianRandomWalk {
-    private static final int SECURITY_COUNT = 5;
+    private static final int SECURITY_COUNT = 2;
     private final List<XYSeries> seriesList;
     private final ChartPanel chartPanel;
-    BiFunction<Double, Random,Double> gaussianUpdateFunction = (i, rand)->{ return i + rand.nextGaussian();};
+    BiFunction<Double, Random,Double> gaussianUpdateFunction = (i, rand)-> i + rand.nextGaussian();
 
     public GaussianRandomWalk() {
         this.seriesList = new ArrayList<>();
@@ -58,7 +58,7 @@ public class GaussianRandomWalk {
         frame.setVisible(true);
     }
 
-    public void walk() throws InterruptedException {
+    public void walk() {
         startAnimationLoop();
         for (XYSeries series : seriesList) {
             new Thread(new SecurityRandomWalk(series, gaussianUpdateFunction)).start();
@@ -72,13 +72,11 @@ public class GaussianRandomWalk {
     private void startAnimationLoop() {
         new Thread(() -> {
             // Redraw the chart
-            SwingUtilities.invokeLater(() -> {
-                chartPanel.repaint();
-            });
+            SwingUtilities.invokeLater(chartPanel::repaint);
         }).start();
     }
 
-    public class SecurityRandomWalk implements Runnable {
+    public static class SecurityRandomWalk implements Runnable {
         private final XYSeries series;
         private final BiFunction<Double, Random, Double> updateFunction;
 
@@ -93,11 +91,11 @@ public class GaussianRandomWalk {
             double init = 0;
             for (int i = 0; i < 100000; i++) {
                 try {
-                    sleep(5);
+                    sleep(505);
                 } catch (InterruptedException e) {
                     throw new RuntimeException(e);
                 }
-                init = (double)updateFunction.apply(init,random);
+                init = updateFunction.apply(init,random);
                 series.add(i, init);
             }
         }
