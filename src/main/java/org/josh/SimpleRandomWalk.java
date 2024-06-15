@@ -20,8 +20,8 @@ import static java.lang.Thread.sleep;
 
 public class SimpleRandomWalk {
     private int init;
-    private List<XYSeries> seriess;
-    private ChartPanel chartPanel;
+    private final List<XYSeries> seriess;
+    private final ChartPanel chartPanel;
     private static final int SECURITY_COUNT = 5;
     public SimpleRandomWalk(){
         this.seriess = new ArrayList<>();
@@ -66,7 +66,7 @@ public class SimpleRandomWalk {
            int init = 0;
            for(int i = 0; i<100000; i++){
                try {
-                   sleep(1);
+                   sleep(5);
                } catch (InterruptedException e) {
                    throw new RuntimeException(e);
                }
