@@ -1,4 +1,4 @@
-package org.josh;
+package org.josh.walks;
 
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.ChartPanel;
@@ -8,30 +8,33 @@ import org.jfree.chart.plot.XYPlot;
 import org.jfree.chart.renderer.xy.XYLineAndShapeRenderer;
 import org.jfree.data.xy.XYSeries;
 import org.jfree.data.xy.XYSeriesCollection;
+import org.josh.interfaces.BiFunction;
 
 import javax.swing.*;
 import java.awt.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.IntStream;
 
 import static java.lang.Thread.sleep;
 
-public class SimpleRandomWalk {
-    private int init;
-    private final List<XYSeries> seriess;
-    private final ChartPanel chartPanel;
+public class GaussianRandomWalk {
     private static final int SECURITY_COUNT = 5;
-    public SimpleRandomWalk(){
-        this.seriess = new ArrayList<>();
-        IntStream.iterate(1,n->n+1).limit(SECURITY_COUNT).forEach(i->seriess.add(new XYSeries("Random Walk 2d "+ i)));
+    private final List<XYSeries> seriesList;
+    private final ChartPanel chartPanel;
+    BiFunction<Double, Random,Double> gaussianUpdateFunction = (i, rand)->{ return i + rand.nextGaussian();};
+
+    public GaussianRandomWalk() {
+        this.seriesList = new ArrayList<>();
+        IntStream.iterate(1, n -> n + 1).limit(SECURITY_COUNT).forEach(i -> seriesList.add(new XYSeries("Gaussian Random Walk 2d " + i)));
         XYSeriesCollection dataset = new XYSeriesCollection();
-        for(XYSeries series: seriess){
+        for (XYSeries series : seriesList) {
             dataset.addSeries(series);
         }
         JFreeChart chart = ChartFactory.createXYLineChart(
-                "2D Random Walk",
+                "2D Gaussian Random Walk",
                 "X",
                 "Y",
                 dataset,
@@ -54,48 +57,49 @@ public class SimpleRandomWalk {
         frame.pack();
         frame.setVisible(true);
     }
-    public class SecurityRandomWalk implements  Runnable{
-        private final XYSeries series;
 
-        public SecurityRandomWalk(XYSeries series){
-            this.series = series;
-        }
-       @Override
-       public void run(){
-           ThreadLocalRandom random = ThreadLocalRandom.current();
-           int init = 0;
-           for(int i = 0; i<100000; i++){
-               try {
-                   sleep(5);
-               } catch (InterruptedException e) {
-                   throw new RuntimeException(e);
-               }
-               if(random.nextGaussian(0,1)>0){
-                   init+=1;
-               }
-               else{
-                   init-=1;
-               }
-               series.add(i,init);
-           }
-       }
-    }
     public void walk() throws InterruptedException {
         startAnimationLoop();
-        for (XYSeries series : seriess) {
-            new Thread(new SecurityRandomWalk(series)).start();
+        for (XYSeries series : seriesList) {
+            new Thread(new SecurityRandomWalk(series, gaussianUpdateFunction)).start();
         }
     }
+
 
     /**
      * Repainting should happen separately from the generation loop for performance reasons
      */
     private void startAnimationLoop() {
-        new Thread(()->{
+        new Thread(() -> {
             // Redraw the chart
             SwingUtilities.invokeLater(() -> {
                 chartPanel.repaint();
             });
         }).start();
+    }
+
+    public class SecurityRandomWalk implements Runnable {
+        private final XYSeries series;
+        private final BiFunction<Double, Random, Double> updateFunction;
+
+        public SecurityRandomWalk(XYSeries series, BiFunction<Double, Random, Double> updateFunction) {
+            this.series = series;
+            this.updateFunction = updateFunction;
+        }
+
+        @Override
+        public void run() {
+            ThreadLocalRandom random = ThreadLocalRandom.current();
+            double init = 0;
+            for (int i = 0; i < 100000; i++) {
+                try {
+                    sleep(5);
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
+                init = (double)updateFunction.apply(init,random);
+                series.add(i, init);
+            }
+        }
     }
 }
